@@ -148,12 +148,14 @@ struct dnssd_s {
 
     uint32_t features1;
     uint32_t features2;
+
+    unsigned char require_pw;
 };
 
 
 
 dnssd_t *
-dnssd_init(const char* name, int name_len, const char* hw_addr, int hw_addr_len, int *error)
+dnssd_init(const char* name, int name_len, const char* hw_addr, int hw_addr_len, int *error, int require_pw)
 {
     dnssd_t *dnssd;
     char *end;
@@ -167,6 +169,8 @@ dnssd_init(const char* name, int name_len, const char* hw_addr, int hw_addr_len,
         return NULL;
     }
 
+    dnssd->require_pw = (unsigned char) require_pw;
+    
     features  = strtoul(FEATURES_1, &end, 16);
     if (!end || (features & 0xFFFFFFFF) != features) {
         free (dnssd);
@@ -296,7 +300,11 @@ dnssd_register_raop(dnssd_t *dnssd, unsigned short port)
     dnssd->TXTRecordSetValue(&dnssd->raop_record, "am", strlen(GLOBAL_MODEL), GLOBAL_MODEL);
     dnssd->TXTRecordSetValue(&dnssd->raop_record, "md", strlen(RAOP_MD), RAOP_MD);
     dnssd->TXTRecordSetValue(&dnssd->raop_record, "rhd", strlen(RAOP_RHD), RAOP_RHD);
-    dnssd->TXTRecordSetValue(&dnssd->raop_record, "pw", strlen("false"), "false");
+    if (dnssd->require_pw) {
+        dnssd->TXTRecordSetValue(&dnssd->raop_record, "pw", strlen("true"), "true");
+    } else {
+        dnssd->TXTRecordSetValue(&dnssd->raop_record, "pw", strlen("true"), "false");
+    }
     dnssd->TXTRecordSetValue(&dnssd->raop_record, "sr", strlen(RAOP_SR), RAOP_SR);
     dnssd->TXTRecordSetValue(&dnssd->raop_record, "ss", strlen(RAOP_SS), RAOP_SS);
     dnssd->TXTRecordSetValue(&dnssd->raop_record, "sv", strlen(RAOP_SV), RAOP_SV);
@@ -358,6 +366,11 @@ dnssd_register_airplay(dnssd_t *dnssd, unsigned short port)
     dnssd->TXTRecordSetValue(&dnssd->airplay_record, "flags", strlen(AIRPLAY_FLAGS), AIRPLAY_FLAGS);
     dnssd->TXTRecordSetValue(&dnssd->airplay_record, "model", strlen(GLOBAL_MODEL), GLOBAL_MODEL);
     dnssd->TXTRecordSetValue(&dnssd->airplay_record, "pk", strlen(PK), PK);
+    if (dnssd->require_pw) {
+        dnssd->TXTRecordSetValue(&dnssd->airplay_record, "pw", strlen("true"), "true");
+    } else {
+        dnssd->TXTRecordSetValue(&dnssd->airplay_record, "pw", strlen("true"), "false");
+    }	  
     dnssd->TXTRecordSetValue(&dnssd->airplay_record, "pi", strlen(AIRPLAY_PI), AIRPLAY_PI);
     dnssd->TXTRecordSetValue(&dnssd->airplay_record, "srcvers", strlen(AIRPLAY_SRCVERS), AIRPLAY_SRCVERS);
     dnssd->TXTRecordSetValue(&dnssd->airplay_record, "vv", strlen(AIRPLAY_VV), AIRPLAY_VV);

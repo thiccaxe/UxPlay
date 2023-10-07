@@ -127,6 +127,7 @@ static std::vector<std::string> allowed_clients;
 static std::vector<std::string> blocked_clients;
 static bool restrict_clients;
 static bool setup_legacy_pairing = false;
+static bool require_password = false;
 
 /* logging */
 
@@ -1073,6 +1074,7 @@ static void parse_arguments (int argc, char *argv[]) {
             exit(1);
         } else if (arg == "-pair") {
             setup_legacy_pairing = true;
+            require_password = true;    /* for testing purposed only ??? */
 	} else {
             fprintf(stderr, "unknown option %s, stopping (for help use option \"-h\")\n",argv[i]);
             exit(1);
@@ -1263,11 +1265,12 @@ static void stop_dnssd() {
 
 static int start_dnssd(std::vector<char> hw_addr, std::string name) {
     int dnssd_error;
+    int require_pw = (require_password ? 1 : 0);
     if (dnssd) {
         LOGE("start_dnssd error: dnssd != NULL");
         return 2;
     }
-    dnssd = dnssd_init(name.c_str(), strlen(name.c_str()), hw_addr.data(), hw_addr.size(), &dnssd_error);
+    dnssd = dnssd_init(name.c_str(), strlen(name.c_str()), hw_addr.data(), hw_addr.size(), &dnssd_error, require_pw);
     if (dnssd_error) {
         LOGE("Could not initialize dnssd library!: error %d", dnssd_error);
         return 1;

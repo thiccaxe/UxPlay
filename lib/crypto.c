@@ -25,6 +25,7 @@
 
 #include <openssl/evp.h>
 #include <openssl/err.h>
+#include <openssl/rand.h>
 
 #include <assert.h>
 #include <stdlib.h>
@@ -422,4 +423,8 @@ void sha_destroy(sha_ctx_t *ctx) {
         EVP_MD_CTX_free(ctx->digest_ctx);
         free(ctx);
     }
+}
+
+int get_random_bytes(unsigned char *buf, int num) {
+    return RAND_bytes(buf, num);
 }

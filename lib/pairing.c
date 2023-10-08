@@ -12,10 +12,11 @@
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *  Lesser General Public License for more details.
  *==================================================================
- * modified by fduncanh 2021
+ * modified by fduncanh 2021-2023
  */
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <assert.h>
 
@@ -47,6 +48,10 @@ struct pairing_session_s {
     x25519_key_t *ecdh_ours;
     x25519_key_t *ecdh_theirs;
     unsigned char ecdh_secret[X25519_KEY_SIZE];
+
+    char *device_id;
+    char *pin;
+    char* salt;
 };
 
 static int
@@ -121,6 +126,10 @@ pairing_session_init(pairing_t *pairing)
 
     session->status = STATUS_INITIAL;
 
+    session->device_id = NULL;
+    session->pin = NULL;
+    session->salt = NULL;
+    
     return session;
 }
 
@@ -257,6 +266,10 @@ pairing_session_destroy(pairing_session_t *session)
         x25519_key_destroy(session->ecdh_ours);
         x25519_key_destroy(session->ecdh_theirs);
 
+        if (session->device_id) free(session->device_id);
+        if (session->pin) free(session->pin);
+	if (session->salt) free(session->salt);
+
         free(session);
     }
 }
@@ -268,4 +281,64 @@ pairing_destroy(pairing_t *pairing)
         ed25519_key_destroy(pairing->ed);
         free(pairing);
     }
+}
+
+int
+pairing_create_pin(pairing_session_t *session, const char *device_id) {
+    int ret;
+    unsigned char random_bytes[PAIRING_SALT_SIZE + 2];
+    unsigned short random_short;
+
+    if (!session) {
+        return 0;
+    }
+
+    if (session->salt) free(session->salt);
+    session->salt = NULL;
+    if (session->device_id) free(session->device_id);
+    session->device_id = NULL;
+    if (session->pin) free(session->pin);
+    session->pin = NULL;
+    if ((ret = get_random_bytes(random_bytes, 18))  < 1) {
+        return (ret);
+    }
+    
+    session->pin = (char *) malloc(PAIRING_PIN_SIZE + 1);        //store as ascii string "1234"
+    session->salt = (char *) malloc(1 + 2 * PAIRING_SALT_SIZE);  //store as ascii string "a02f349ae...."
+    session->device_id = (char *) malloc(1 + (int) strlen(device_id));
+    if (!session->pin || !session->salt || !session->device_id) {
+        if (session->pin) free (session->pin);
+        if (session->salt) free (session->salt);
+        if (session->device_id) free (session->device_id);	    
+        return 0;
+    }
+    
+    strncpy(session->device_id, device_id, strlen(device_id));
+
+    for (int i = 0 ; i <  PAIRING_SALT_SIZE; i++ ) {
+        snprintf(session->salt + 2*i, 3, "%02x", random_bytes[i]);
+    }
+    
+    memcpy(&random_short, random_bytes + PAIRING_PIN_SIZE, 2);
+    random_short = random_short % 10000;
+    snprintf(session->pin, 5, "%04u", random_short);
+    return 1;
+}
+
+int
+pairing_get_pin(pairing_session_t *session, const char *device_id, char **pin, char **salt) {
+    *pin = NULL;
+    *salt = NULL
+      
+    if (!session  || !session->device_id || !session->pin || 1session->salt) {
+        return -1;
+    }
+
+    if (strlen(device_id) != strlen(session->device_id)  || strncmp(device_id, session->device_id, strlen(device_id))) {
+        return 1;
+    }
+    
+    *pin  = session->pin;
+    *salt = session->salt;
+    return 0;
 }

@@ -174,6 +174,98 @@ raop_handler_info(raop_conn_t *conn,
 }
 
 static void
+raop_handler_pairsetup_pin(raop_conn_t *conn,
+                           http_request_t *request, http_response_t *response,
+		           char **response_data, int *response_datalen) {
+    const char *request_data;
+    int request_datalen;
+    char device_id[24];
+    unsigned char public_key[ED25519_KEY_SIZE];
+    bool use_pin = false;
+    bool data_is_plist = false;
+    request_data = http_request_get_data(request, &request_datalen);
+    logger_log(conn->raop->logger, LOGGER_INFO, "client requested pair-setup-pin, datalen = %d", request_datalen);
+    if (request_datalen > 0) {
+        char *header_str= NULL; 
+        http_request_get_header_string(request, &header_str);
+        logger_log(conn->raop->logger, LOGGER_INFO, "request header: %s", header_str);
+        data_is_plist = (strstr(header_str,"apple-binary-plist") != NULL);
+        free(header_str);
+    }
+    if (!data_is_plist) {
+        logger_log(conn->raop->logger, LOGGER_INFO, "did not receive expected plist from client, request_datalen = %d");
+        *response_data = NULL;
+        response_datalen = 0;
+        return;
+    } else {
+        /* process the pair-setup-pin request */
+        char *method = NULL;
+        char *user = NULL;
+        plist_t req_root_node = NULL;
+        plist_from_bin(request_data, request_datalen, &req_root_node);
+        plist_t req_method_node = plist_dict_get_item(req_root_node, "method");
+        plist_get_string_val(req_method_node, &method);
+	if (method) {
+            use_pin = (strncmp(method, "pin", strlen (method)) == 0);
+            if (!use_pin) {
+                logger_log(conn->raop->logger, LOGGER_ERR, "error, required method is \"pin\", client requested \"%s\"", method);
+            }      
+            free(method);
+	}
+        plist_t req_user_node = plist_dict_get_item(req_root_node, "user");
+	plist_get_string_val(req_user_node, &user);
+	if (user && use_pin) {
+ 	    strncpy(device_id, (const char *) user, sizeof(device_id) - 1);
+	    free(user);
+	}
+        plist_free(req_root_node);
+        if (!use_pin) {
+            *response_data = NULL;
+            response_datalen = 0;
+	    return;
+        }
+    }
+    // For the response
+    unsigned char *salt = (unsigned char *) malloc(PAIRING_SALT_SIZE);
+    char pin[PAIRING_PIN_SIZE] = {'1', '2', '3', '4', '\0' };
+    int ret;
+    memset(salt, 0, PAIRING_SALT_SIZE);
+    logger_log(conn->raop->logger, LOGGER_INFO, "pair-setup-pin:  device_id = %s", device_id);
+
+    if ((ret = pairing_create_pin(conn->pairing, (const char *) device_id)) < 1) {
+        logger_log(conn->raop->logger, LOGGER_ERR, "failed to create pin, err = %d", ret);
+        *response_data = NULL;
+        response_datalen = 0;
+        return;
+    }
+
+    if (!pairing_get_pin(conn->pairing, (const char *) device_id, pin, salt)){
+        logger_log(conn->raop->logger, LOGGER_ERR, "pairing_get_pin: no pin for device_id %s was found", device_id);
+        *response_data = NULL;
+        response_datalen = 0;
+        return;
+    }
+
+    if (conn->raop->callbacks.display_pin) {
+        conn->raop->callbacks.display_pin(conn->raop->callbacks.cls, pin);
+    }
+      
+    logger_log(conn->raop->logger, LOGGER_INFO, "*** CLIENT MUST NOW ENTER PIN = \"%s\" AS AIRPLAY PASWSWORD", pin);
+
+    pairing_session_set_setup_status(conn->pairing);
+    pairing_get_public_key(conn->raop->pairing, public_key);
+
+    plist_t res_root_node = plist_new_dict();
+    plist_t res_pk_node = plist_new_data((const char *) public_key, sizeof(public_key));
+    plist_dict_set_item(res_root_node, "pk", res_pk_node);	
+    plist_t res_salt_node = plist_new_data((const char *) salt, PAIRING_SALT_SIZE);
+    plist_dict_set_item(res_salt_node, "salt", res_salt_node);
+    plist_to_bin(res_root_node, response_data, (uint32_t*) response_datalen);
+    plist_free(res_root_node);
+    http_response_add_header(response, "Content-Type", "application/x-apple-binary-plist");
+}
+
+static void
 raop_handler_pairsetup(raop_conn_t *conn,
                        http_request_t *request, http_response_t *response,
                        char **response_data, int *response_datalen)

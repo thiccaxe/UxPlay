@@ -215,11 +215,9 @@ conn_request(void *ptr, http_request_t *request, http_response_t **response) {
     if (!strcmp(method, "GET") && !strcmp(url, "/info")) {
         handler = &raop_handler_info;
     } else if (!strcmp(method, "POST") && !strcmp(url, "/pair-pin-start")) {
-       logger_log(conn->raop->logger, LOGGER_ERR,  "*** ERROR: Unsupported client request %s with URL %s", method, url);
-       logger_log(conn->raop->logger, LOGGER_INFO, "*** AirPlay client has requested PIN as implemented on AppleTV,");
-       logger_log(conn->raop->logger, LOGGER_INFO, "*** but this implementation does not require a PIN and cannot supply one.");
-       logger_log(conn->raop->logger, LOGGER_INFO, "*** This client behavior may have been required by mobile device management (MDM)");
-       logger_log(conn->raop->logger, LOGGER_INFO, "*** (such as Apple Configurator or a third-party MDM tool).");
+        logger_log(conn->raop->logger, LOGGER_INFO, "client sent PAIR-PIN-START request");
+    } else if (!strcmp(method, "POST") && !strcmp(url, "/pair-setup-pin")) {
+        handler = &raop_handler_pairsetup_pin;
     } else if (!strcmp(method, "POST") && !strcmp(url, "/pair-setup")) {
         handler = &raop_handler_pairsetup;
     } else if (!strcmp(method, "POST") && !strcmp(url, "/pair-verify")) {
@@ -422,6 +420,8 @@ raop_init(int max_clients, raop_callbacks_t *callbacks) {
 
     /* Initialize the logger */
     raop->logger = logger_init();
+
+    /* create a new public key for pairing */
     pairing = pairing_init_generate();
     if (!pairing) {
         free(raop);

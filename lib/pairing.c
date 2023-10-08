@@ -51,7 +51,7 @@ struct pairing_session_s {
 
     char *device_id;
     char *pin;
-    char* salt;
+    unsigned char *salt;
 };
 
 static int
@@ -304,8 +304,8 @@ pairing_create_pin(pairing_session_t *session, const char *device_id) {
     }
     
     session->pin = (char *) malloc(PAIRING_PIN_SIZE + 1);        //store as ascii string "1234"
-    session->salt = (char *) malloc(1 + 2 * PAIRING_SALT_SIZE);  //store as ascii string "a02f349ae...."
-    session->device_id = (char *) malloc(1 + (int) strlen(device_id));
+    session->salt = (unsigned char *) malloc(PAIRING_SALT_SIZE);  
+    session->device_id = (char *) malloc((int) strlen(device_id) + 1);
     if (!session->pin || !session->salt || !session->device_id) {
         if (session->pin) free (session->pin);
         if (session->salt) free (session->salt);
@@ -313,32 +313,27 @@ pairing_create_pin(pairing_session_t *session, const char *device_id) {
         return 0;
     }
     
-    strncpy(session->device_id, device_id, strlen(device_id));
-
-    for (int i = 0 ; i <  PAIRING_SALT_SIZE; i++ ) {
-        snprintf(session->salt + 2*i, 3, "%02x", random_bytes[i]);
-    }
-    
     memcpy(&random_short, random_bytes + PAIRING_PIN_SIZE, 2);
     random_short = random_short % 10000;
     snprintf(session->pin, 5, "%04u", random_short);
-    return 1;
+    strncpy(session->device_id, device_id, strlen(device_id));
+    memcpy(session->salt, random_bytes, PAIRING_SALT_SIZE);
+
+     return 1;
 }
 
-int
-pairing_get_pin(pairing_session_t *session, const char *device_id, char **pin, char **salt) {
-    *pin = NULL;
-    *salt = NULL
+char *
+pairing_get_pin(pairing_session_t *session, const char *device_id, unsigned char salt[PAIRING_SALT_SIZE], int * error) {
       
-    if (!session  || !session->device_id || !session->pin || 1session->salt) {
-        return -1;
+    if (!session  || !session->device_id || !session->pin || !session->salt) {
+        *error = -1;
+        return NULL;
     }
 
     if (strlen(device_id) != strlen(session->device_id)  || strncmp(device_id, session->device_id, strlen(device_id))) {
-        return 1;
+        *error = 1;
+        return NULL;
     }
-    
-    *pin  = session->pin;
-    *salt = session->salt;
-    return 0;
+    memcpy(salt, session->salt, PAIRING_SALT_SIZE);
+    return session->pin;
 }

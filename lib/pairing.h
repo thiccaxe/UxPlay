@@ -19,6 +19,8 @@
 #define PAIRING_H
 
 #define PAIRING_SIG_SIZE (2 * X25519_KEY_SIZE)
+#define PAIRING_SALT_SIZE 16
+#define PAIRING_PIN_SIZE 4
 
 typedef struct pairing_s pairing_t;
 typedef struct pairing_session_s pairing_session_t;
@@ -32,6 +34,8 @@ int pairing_session_check_handshake_status(pairing_session_t *session);
 int pairing_session_handshake(pairing_session_t *session, const unsigned char ecdh_key[X25519_KEY_SIZE],
                               const unsigned char ed_key[ED25519_KEY_SIZE]);
 int pairing_session_get_public_key(pairing_session_t *session, unsigned char ecdh_key[X25519_KEY_SIZE]);
+int pairing_create_pin(pairing_session_t *session, const char *device_id);
+char *pairing_get_pin(pairing_session_t *session, const char *device_id, unsigned char salt[PAIRING_SALT_SIZE], int *error);
 int pairing_session_get_signature(pairing_session_t *session, unsigned char signature[PAIRING_SIG_SIZE]);
 int pairing_session_finish(pairing_session_t *session, const unsigned char signature[PAIRING_SIG_SIZE]);
 void pairing_session_destroy(pairing_session_t *session);

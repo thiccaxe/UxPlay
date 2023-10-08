@@ -226,10 +226,14 @@ raop_handler_pairsetup_pin(raop_conn_t *conn,
         }
     }
     // For the response
-    unsigned char *salt = (unsigned char *) malloc(PAIRING_SALT_SIZE);
-    char pin[PAIRING_PIN_SIZE] = {'1', '2', '3', '4', '\0' };
     int ret;
+    int error;
+    bool logger_debug = (logger_get_level(conn->raop->logger) >= LOGGER_DEBUG);
+    char default_pin[] = { '1', '2', '3', '4', '\0' };
+    unsigned char salt[PAIRING_SALT_SIZE];
     memset(salt, 0, PAIRING_SALT_SIZE);
+    char *pin = default_pin;
+
     logger_log(conn->raop->logger, LOGGER_INFO, "pair-setup-pin:  device_id = %s", device_id);
 
     if ((ret = pairing_create_pin(conn->pairing, (const char *) device_id)) < 1) {
@@ -239,27 +243,33 @@ raop_handler_pairsetup_pin(raop_conn_t *conn,
         return;
     }
 
-    if (!pairing_get_pin(conn->pairing, (const char *) device_id, pin, salt)){
-        logger_log(conn->raop->logger, LOGGER_ERR, "pairing_get_pin: no pin for device_id %s was found", device_id);
+    if (!(pin = pairing_get_pin(conn->pairing, (const char *) device_id, salt, &error))) {
+        logger_log(conn->raop->logger, LOGGER_ERR, "pairing_get_pin: error  = %d");
         *response_data = NULL;
         response_datalen = 0;
         return;
     }
-
+    if (logger_debug) {
+        char *str = utils_data_to_string(salt, PAIRING_SALT_SIZE, 16);
+        logger_log(conn->raop->logger, LOGGER_DEBUG, "pairing-pin-setup: pin = \"%s\", salt = %s", pin, str);
+	free(str);
+    }
+    
     if (conn->raop->callbacks.display_pin) {
         conn->raop->callbacks.display_pin(conn->raop->callbacks.cls, pin);
     }
       
-    logger_log(conn->raop->logger, LOGGER_INFO, "*** CLIENT MUST NOW ENTER PIN = \"%s\" AS AIRPLAY PASWSWORD", pin);
+    logger_log(conn->raop->logger, LOGGER_INFO, "*** CLIENT MUST NOW ENTER PIN = \"%s\" AS AIRPLAY PASSWORD", pin);
 
     pairing_session_set_setup_status(conn->pairing);
     pairing_get_public_key(conn->raop->pairing, public_key);
 
+    
     plist_t res_root_node = plist_new_dict();
+    plist_t res_salt_node = plist_new_data((const char *) salt, sizeof(salt));
     plist_t res_pk_node = plist_new_data((const char *) public_key, sizeof(public_key));
     plist_dict_set_item(res_root_node, "pk", res_pk_node);	
-    plist_t res_salt_node = plist_new_data((const char *) salt, PAIRING_SALT_SIZE);
-    plist_dict_set_item(res_salt_node, "salt", res_salt_node);
+    plist_dict_set_item(res_root_node, "salt", res_salt_node);
     plist_to_bin(res_root_node, response_data, (uint32_t*) response_datalen);
     plist_free(res_root_node);
     http_response_add_header(response, "Content-Type", "application/x-apple-binary-plist");

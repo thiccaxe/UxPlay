@@ -303,7 +303,7 @@ dnssd_register_raop(dnssd_t *dnssd, unsigned short port)
     if (dnssd->require_pw) {
         dnssd->TXTRecordSetValue(&dnssd->raop_record, "pw", strlen("true"), "true");
     } else {
-        dnssd->TXTRecordSetValue(&dnssd->raop_record, "pw", strlen("true"), "false");
+        dnssd->TXTRecordSetValue(&dnssd->raop_record, "pw", strlen("false"), "false");
     }
     dnssd->TXTRecordSetValue(&dnssd->raop_record, "sr", strlen(RAOP_SR), RAOP_SR);
     dnssd->TXTRecordSetValue(&dnssd->raop_record, "ss", strlen(RAOP_SS), RAOP_SS);
@@ -369,7 +369,7 @@ dnssd_register_airplay(dnssd_t *dnssd, unsigned short port)
     if (dnssd->require_pw) {
         dnssd->TXTRecordSetValue(&dnssd->airplay_record, "pw", strlen("true"), "true");
     } else {
-        dnssd->TXTRecordSetValue(&dnssd->airplay_record, "pw", strlen("true"), "false");
+        dnssd->TXTRecordSetValue(&dnssd->airplay_record, "pw", strlen("false"), "false");
     }	  
     dnssd->TXTRecordSetValue(&dnssd->airplay_record, "pi", strlen(AIRPLAY_PI), AIRPLAY_PI);
     dnssd->TXTRecordSetValue(&dnssd->airplay_record, "srcvers", strlen(AIRPLAY_SRCVERS), AIRPLAY_SRCVERS);

@@ -10,7 +10,9 @@ href="https://github.com/FDH2/UxPlay">https://github.com/FDH2/UxPlay</a>
 found).</strong></h3>
 <ul>
 <li><p><em><strong>NEW in v1.70</strong>: Support for 4k (h265) video
-with the new “-h265” option.</em></p></li>
+with the new “-h265” option.</em> (A wired ethernet connection is
+prefered to wireless in this mode, and may be required by the
+client)</p></li>
 <li><p><strong>An experimental (“beta”) version of UxPlay with support
 for HLS streaming of YouTube Videos from the YouTube app on an iOS
 client is now also available at</strong>
@@ -220,9 +222,10 @@ href="https://github.com/FDH2/UxPlay/wiki/Gstreamer-Video4Linux2-plugin-patches"
 Wiki</a>). Also requires the out-of-mainline Linux kernel module
 bcm2835-codec maintained by Raspberry Pi, so far only included in
 Raspberry Pi OS, and two other distributions (Ubuntu, Manjaro) available
-with Raspberry Pi Imager. <em>Note: The latest Raspberry Pi model 5 does
-not provide hardware-accelerated (GPU) H264 decoding as its CPU is
-powerful enough for satisfactory software decoding.</em></p></li>
+with Raspberry Pi Imager. <em>Note: The latest Raspberry Pi model 5
+provides hardware-accelerated (GPU) H265 (HEVC) decoding, but not H264,
+as its CPU is powerful enough for satisfactory software H264
+decoding.</em></p></li>
 </ul>
 <h3 id="note-to-packagers">Note to packagers:</h3>
 <p>UxPlay’s GPLv3 license does not have an added “GPL exception”
@@ -636,8 +639,10 @@ decoding by the Broadcom GPU on Raspberry Pi 5 models, as well as on
 Raspberry Pi 4 model B. <strong>While GStreamer seem to make use of this
 hardware decoding, satisfactory rendering of 4K video by UxPlay on these
 Raspberry Pi models has not yet been acheived.</strong> The option -h265
-is required, and option “-vsync no” may be preferred. “<em>4K video on
-Raspberry Pi is still a work in progress.</em>”</p></li>
+is required for actvating h265 support, and option “-vsync no” may be
+preferred. A wired ethernet connection is preferred in this mode (and
+may be required by the client) “<em>4K video on Raspberry Pi is still a
+work in progress.</em>”</p></li>
 </ul>
 <p>Even with GPU video decoding, some frames may be dropped by the
 lower-power models to keep audio and video synchronized using

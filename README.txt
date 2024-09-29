@@ -3,7 +3,8 @@
 ### **Now developed at the GitHub site <https://github.com/FDH2/UxPlay> (where ALL user issues should be posted, and latest versions can be found).**
 
 -   ***NEW in v1.70**: Support for 4k (h265) video with the new "-h265"
-    option.*
+    option.* (A wired ethernet connection is prefered to wireless in
+    this mode, and may be required by the client)
 
 -   **An experimental ("beta") version of UxPlay with support for HLS
     streaming of YouTube Videos from the YouTube app on an iOS client is
@@ -215,9 +216,9 @@ used.
     Also requires the out-of-mainline Linux kernel module bcm2835-codec
     maintained by Raspberry Pi, so far only included in Raspberry Pi OS,
     and two other distributions (Ubuntu, Manjaro) available with
-    Raspberry Pi Imager. *Note: The latest Raspberry Pi model 5 does not
-    provide hardware-accelerated (GPU) H264 decoding as its CPU is
-    powerful enough for satisfactory software decoding.*
+    Raspberry Pi Imager. *Note: The latest Raspberry Pi model 5 provides
+    hardware-accelerated (GPU) H265 (HEVC) decoding, but not H264, as
+    its CPU is powerful enough for satisfactory software H264 decoding.*
 
 ### Note to packagers:
 
@@ -634,8 +635,10 @@ See [Usage](#usage) for more run-time options.
     model B. **While GStreamer seem to make use of this hardware
     decoding, satisfactory rendering of 4K video by UxPlay on these
     Raspberry Pi models has not yet been acheived.** The option -h265 is
-    required, and option "-vsync no" may be preferred. "*4K video on
-    Raspberry Pi is still a work in progress.*"
+    required for actvating h265 support, and option "-vsync no" may be
+    preferred. A wired ethernet connection is preferred in this mode
+    (and may be required by the client) "*4K video on Raspberry Pi is
+    still a work in progress.*"
 
 Even with GPU video decoding, some frames may be dropped by the
 lower-power models to keep audio and video synchronized using
